@@ -1,281 +1,166 @@
-create database SaleManagement;
-use SaleManagement;
-CREATE TABLE Products (
-    product_id INT AUTO_INCREMENT PRIMARY KEY,
-    product_name VARCHAR(100) NOT NULL,
-    price FLOAT NOT NULL,
-    quantity INT NOT NULL
-);
+-- 2.1  Truy vấn cơ bản
+-- Liệt kê tất cả người dùng trong hệ thống.
 
-INSERT INTO Products (product_name, price, quantity) VALUES
-('Cà phê sữa đá', 25000, 100),
-('Trà đào cam sả', 30000, 80),
-('Bạc xỉu', 28000, 60),
-('Matcha đá xay', 45000, 40),
-('Sinh tố xoài', 35000, 50);
+SELECT `u`.`user_id`, `u`.`name` `TenNguoiDung`, `u`.`email`
+FROM `users` `u`;
 
+-- Liệt kê tên và giá của tất cả sản phẩm.
+SELECT `p`.`product_id`, `p`.`name` `Ten`, `p`.`price` `Gia`
+FROM `products` `p`;
 
+-- Liệt kê tên danh mục và mô tả.
 
-create table Customers (
-customer_id int auto_increment primary key,
-full_name varchar(100) not null,
-email varchar(100) not null unique
-);
+SELECT `c`.`name` `TenDanhMuc`, `c`.`desciption` `MoTa`
+FROM `category` `c`;
 
-INSERT INTO Customers (full_name, email) VALUES
-('Nguyễn Văn An', 'nguyenvana@example.com'),
-('Trần Thị Bích', 'tranbich@example.com'),
-('Lê Hoàng Nam', 'lehoangnam@example.com'),
-('Phạm Minh Châu', 'minhchau@example.com'),
-('Đỗ Tuấn Kiệt', 'dotuankiet@example.com');
+-- Liệt kê mã sản phẩm, tên và số lượng tồn kho.
 
-create table Orders (
-order_id int auto_increment primary key,
-customer_id int,
-order_date date not null,
-foreign key (customer_id) references Customers(customer_id) on delete cascade
-);
+SELECT `p`.`product_id` `MaSanPham`, `p`.`name` `TenSanPham`, `p`.`stock` `SoLuongTonKho`
+FROM `products` `p`;
 
-INSERT INTO Orders (customer_id, order_date) VALUES
-(1, '2025-06-10'),
-(2, '2025-06-11'),
-(3, '2025-06-12'),
-(4, '2025-06-13'),
-(5, '2025-06-14');
+-- Liệt kê đơn hàng gồm order_id, user_id, total_amount.
+SELECT `o`.`order_id`, `o`.`user_id`, `o`.`total_amount`
+FROM `orders` `o`;
 
-create table OrderDetails(
-detail_id int auto_increment primary key,
-order_id int,
-product_id int,
-quantity int not null,
-foreign key (order_id) references Orders(order_id),
-foreign key (product_id) references Products (product_id)
-);
+-- Liệt kê các bản ghi trong bảng Order_Detail.
 
-INSERT INTO OrderDetails (order_id, product_id, quantity) VALUES
-(1, 1, 2),   -- Nguyễn Văn A mua 2 Cà phê sữa đá
-(1, 2, 1),   -- và 1 Trà đào cam sả
-(2, 3, 2),   -- Trần Thị Bích mua 2 Bạc xỉu
-(2, 1, 1),   -- và 1 Cà phê sữa đá
-(3, 4, 1),   -- Lê Hoàng Nam mua 1 Matcha đá xay
-(3, 5, 1),   -- và 1 Sinh tố xoài
-(4, 2, 2),   -- Phạm Minh Châu mua 2 Trà đào cam sả
-(5, 3, 1),   -- Đỗ Tuấn Kiệt mua 1 Bạc xỉu
-(5, 4, 2),   -- và 2 Matcha đá xay
-(5, 1, 1);   -- và thêm 1 Cà phê sữa đá
+SELECT `od`.`order_id`, `od`.`product_id`, `od`.`price_at_time`, `od`.`quantity`
+FROM `order_detail` `od`;
 
-select * from products;
-select * from orders;
-select * from customers;
+-- 2.2 Truy vấn có điều kiện
+-- Liệt kê người dùng có email kết thúc bằng “@gmail.com”.
+SELECT `u`.`user_id`, `u`.`name`, `u`.`email`
+FROM `users` `u`
+WHERE `email` LIKE '%@gmail.com';
 
--- Lấy danh sách tất cả sản phẩm và số lượng đã bán.
-SELECT 
-    p.product_id, p.product_name, sum(o.quantity) AS soluong_ban
-FROM
-    Products p
-        JOIN
-    orderdetails o ON o.product_id = p.product_id
-GROUP BY product_id , product_name;
- 
--- Tìm khách hàng có giá trị đơn hàng lớn nhất.
-SELECT 
-    c.customer_id,
-    c.full_name AS customer_Name,
-    SUM(odt.quantity * price) AS tong_tien
-FROM
-    Customers c
-        JOIN
-    orders o ON o.customer_id = c.customer_id
-        JOIN
-    orderdetails odt ON odt.order_id = o.order_id
-        JOIN
-    products p ON p.product_id = odt.product_id
-GROUP BY c.customer_id , c.full_name
-ORDER BY tong_tien DESC
-LIMIT 1;
+-- Liệt kê sản phẩm có giá trên 1 triệu đồng.
+SELECT `p`.`product_id`, `p`.`name`, `p`.`price`
+FROM `products` `p`
+WHERE `p`.`price` > 1000000;
 
--- Cập nhật giá sản phẩm có product_id = 1 và số lượng tương ứng.
-SELECT 
-    product_id, price, product_name, quantity
-FROM
-    Products
-WHERE
-    product_id = 1;
-UPDATE products 
-SET 
-    price = 40000,
-    quantity = 50
-WHERE
-    product_id = 1;
+-- Liệt kê đơn hàng có tổng tiền lớn hơn 5 triệu.
 
--- Xóa tất cả đơn hàng cũ hơn 1 năm .
-set sql_safe_updates = 0;
-delete 
-from orders o
-where o.order_date < curdate() - interval 1 year;
-set sql_safe_updates = 1;
+SELECT `o`.`order_id`, `o`.`total_amount`
+FROM `orders` `o`
+WHERE `total_amount` > 5000000;
 
--- Tính tổng doanh thu từ tất cả đơn hàng.
-SELECT 
-    SUM(od.quantity * p.price) AS tong_doanh_thu
-FROM
-    orders o
-        JOIN
-    orderDetails od ON od.order_id = o.order_id
-        JOIN
-    products p ON p.product_id = od.product_id;
+-- Liệt kê sản phẩm còn hàng (stock > 0).
+SELECT `p`.`name` `SanPham`, `p`.`stock` AS `HangTonKho`
+FROM `products` `p`;
 
--- Lấy danh sách khách hàng, số lượng đơn hàng và tổng giá trị đơn hàng của họ.
+-- Liệt kê đơn hàng được tạo sau ngày 2024-06-05.
+SELECT `o`.`order_id`, `o`.`created_at`
+FROM `orders` `o`
+WHERE `o`.`created_at` > '2024-06-05';
 
-SELECT 
-    c.customer_id,
-    c.full_name AS customer_Name,
-    COUNT(o.order_id) AS so_don_hang,
-    SUM(od.quantity * price) AS hoa_don_tong_tien
-FROM
-    customers c
-        JOIN
-    orders o ON o.customer_id = c.customer_id
-        JOIN
-    orderdetails od ON od.order_id = o.order_id
-        JOIN
-    products p ON p.product_id = od.product_id
-GROUP BY c.customer_id , full_name;
+-- Liệt kê danh mục có tên là “Sách”.
+SELECT `c`.`name`, `c`.`desciption`
+FROM `category` `c`
+WHERE `name` = 'Sách';
 
--- Tìm sản phẩm có doanh thu cao nhất.
+-- 2.3 Truy vấn có nhóm dữ liệu
+-- Đếm số lượng sản phẩm thuộc mỗi danh mục.
+SELECT `c`.`category_id`, `c`.`name`, COUNT(DISTINCT `p`.`product_id`) `TongSoLuong`
+FROM `products` `p`
+         JOIN `category` `c` ON `p`.`category_id` = `c`.`category_id`
+GROUP BY `c`.`category_id`, `c`.`name`;
 
-SELECT 
-    p.product_id,
-    p.product_name,
-    SUM(od.quantity * p.price) AS doanh_thu
-FROM
-    products p
-        JOIN
-    orderdetails od ON od.product_id = p.product_id
-GROUP BY p.product_id , p.product_name
-ORDER BY doanh_thu DESC
-LIMIT 1;
+-- Tính tổng số lượng tồn kho theo từng danh mục sản phẩm.
+SELECT `c`.`category_id`, `c`.`name`, SUM(`p`.`stock`) `TonKho`
+FROM `category` `c`
+         JOIN `products` `p` ON `p`.`category_id` = `c`.`category_id`
+GROUP BY `c`.`category_id`;
 
--- Lấy danh sách đơn hàng và thông tin khách hàng cho đơn hàng có tổng giá trị lớn hơn 500.
-SELECT 
-    o.order_id,
-    c.full_name AS customer_name,
-    c.email,
-    SUM(od.quantity * p.price) AS tien_don_hang
-FROM
-    orders o
-        JOIN
-    orderdetails od ON od.order_id = o.order_id
-        JOIN
-    customers c ON c.customer_id = o.customer_id
-        JOIN
-    products p ON p.product_id = od.product_id
-GROUP BY o.order_id , c.full_name , c.email
-HAVING tien_don_hang > 100000;
+-- Tính tổng tiền mỗi người đã đặt hàng (theo user_id).
+SELECT `u`.`user_id`, `u`.`name`, SUM(`o`.`total_amount`) `TongTien`
+FROM `orders` `o`
+         JOIN `users` `u` ON `u`.`user_id` = `o`.`user_id`
+GROUP BY `u`.`user_id`, `u`.`name`;
 
--- Sắp xếp sản phẩm theo số lượng bán từ cao đến thấp.
-SELECT 
-    p.product_id,
-    p.product_name,
-    COUNT(od.quantity) AS so_luong_ban
-FROM
-    products p
-        JOIN
-    orderdetails od ON od.product_id = p.product_id
-GROUP BY p.product_id , p.product_name
-ORDER BY so_luong_ban DESC;
+-- Tính số lượng đơn hàng của mỗi người dùng.
+SELECT `u`.`user_id`, `u`.`name`, COUNT(`o`.`order_id`) `TongDonHang`
+FROM `orders` `o`
+         JOIN `users` `u` ON `u`.`user_id` = `o`.`user_id`
+GROUP BY `u`.`user_id`, `u`.`name`;
 
--- Tìm khách hàng đã đặt hàng nhiều nhất trong tháng này.
-SELECT 
-    c.customer_id,
-    c.full_name AS customer_name,
-    COUNT(od.order_id) AS so_don_hang
-FROM
-    customers c
-        JOIN
-    orders o ON o.customer_id = c.customer_id
-        JOIN
-    orderdetails od ON od.order_id = o.order_id
-WHERE
-    MONTH(order_date) = MONTH(NOW())
-        AND YEAR(order_date) = YEAR(NOW())
-GROUP BY c.customer_id , c.full_name
-ORDER BY so_don_hang DESC
-LIMIT 1;
+-- Tính số lượng sản phẩm khác nhau trong từng đơn hàng.
+SELECT `od`.`order_id`, COUNT(DISTINCT `od`.`product_id`) `SoLuongSanPhamKhacNhau`
+FROM `order_detail` `od`
+GROUP BY `od`.`order_id`;
 
--- Thống kê số tiền tồn kho của mỗi sản phẩm ( công thức tính = quantity * price ).
-SELECT 
-    p.product_id,
-    p.product_name,
-    p.quantity AS so_luong_ton_kho,
-    (p.quantity * p.price) AS so_tien
-FROM
-    products p;
+-- Liệt kê các người dùng có tổng số tiền đơn hàng > 10 triệu.
+SELECT `u`.`user_id`, `u`.`name`, SUM(`o`.`total_amount`) AS `TongTien`
+FROM `users` `u`
+         JOIN `orders` `o` ON `o`.`user_id` = `u`.`user_id`
+GROUP BY `u`.`user_id`, `u`.`name`
+HAVING `TongTien` > 10000000
+ORDER BY `TongTien` DESC;
+
+-- Liệt kê danh mục có tổng số sản phẩm tồn kho > 100.
+SELECT `c`.`category_id`, `c`.`name`, SUM(`p`.`stock`) `TonKho`
+FROM `category` `c`
+         JOIN `products` `p` ON `p`.`category_id` = `c`.`category_id`
+GROUP BY `c`.`category_id`, `c`.`name`
+HAVING `TonKho` > 100;
+
+-- Liệt kê đơn hàng có nhiều hơn 2 loại sản phẩm.
+SELECT `od`.`order_id`, COUNT(DISTINCT `od`.`product_id`)
+FROM `order_detail` `od`
+GROUP BY `od`.`order_id`
+HAVING COUNT(DISTINCT `od`.`product_id`) > 2;
+
+-- Liệt kê người dùng có hơn 1 đơn hàng.
+SELECT `u`.`user_id`, `u`.`name`, COUNT(DISTINCT `o`.`order_id`) `SoDonHang`
+FROM `users` `u`
+         JOIN `orders` `o` ON `o`.`user_id` = `u`.`user_id`
+GROUP BY `u`.`user_id`, `u`.`name`
+HAVING `SoDonHang` > 1;
+
+-- 2.4. Truy vấn sử dụng đầy đủ các mệnh đề
+-- Liệt kê 5 sản phẩm có giá cao nhất
+SELECT `p`.`product_id`, `p`.`name`, `p`.`price`
+FROM `products` `p`
+ORDER BY `p`.`price` DESC
+LIMIT 5;
+
+-- Liệt kê tên sản phẩm và giá, sắp xếp theo price tăng dần
+
+SELECT `p`.`name`, `p`.`price`
+FROM `products` `p`
+ORDER BY `p`.`price`;
+
+-- Liệt kê tất cả đơn hàng, hiển thị thêm cột VAT = 10% tổng tiền.
+SELECT `o`.`order_id`, FORMAT((`o`.`total_amount` * 0.1), 0) `VAT (10%)`
+FROM `orders` `o`;
+
+-- 2.5. Truy vấn lồng
+-- Liệt kê sản phẩm có giá cao hơn giá trung bình của tất cả sản phẩm.
+
+SELECT `p`.`product_id`, `p`.`name`, FORMAT(`p`.`price`, 0)
+FROM `products` `p`
+WHERE `p`.`price` > (SELECT AVG(`p2`.`price`)
+                     FROM `products` `p2`);
+
+-- Liệt kê người dùng đã từng đặt ít nhất 1 đơn hàng.
+SELECT `u`.`name`, `u`.`user_id`, COUNT(`u`.`user_id`) `SoDonHang`
+FROM `orders` `o`
+         JOIN `users` `u` ON `u`.`user_id` = `o`.`user_id`
+GROUP BY `u`.`user_id`, `u`.`name`;
+
+-- Liệt kê tên sản phẩm xuất hiện trong đơn hàng có tổng tiền > 20 triệu.
+SELECT DISTINCT `p`.`name`, `o`.`order_id`
+FROM `products` `p`
+         JOIN `order_detail` `od` ON `od`.`product_id` = `p`.`product_id`
+         JOIN `orders` `o` ON `o`.`order_id` = `od`.`order_id`
+WHERE `o`.`total_amount` > 20000000;
 
 
+-- Liệt kê đơn hàng chứa sản phẩm thuộc danh mục “Điện tử”.
 
--- Cập nhật cho từng dòng theo order_id và product_id
-ALTER TABLE orderdetails
-ADD status VARCHAR(50);
-UPDATE orderdetails SET status = 'Đã thanh toán' WHERE order_id = 1 AND product_id = 1;
-UPDATE orderdetails SET status = 'Đã thanh toán' WHERE order_id = 1 AND product_id = 2;
-UPDATE orderdetails SET status = 'Đã thanh toán' WHERE order_id = 2 AND product_id = 3;
-UPDATE orderdetails SET status = 'Đã thanh toán' WHERE order_id = 2 AND product_id = 1;
-UPDATE orderdetails SET status = 'Chưa thanh toán' WHERE order_id = 3 AND product_id = 4;
-UPDATE orderdetails SET status = 'Chưa thanh toán' WHERE order_id = 3 AND product_id = 5;
-UPDATE orderdetails SET status = 'Đang xử lý' WHERE order_id = 4 AND product_id = 2;
-UPDATE orderdetails SET status = 'Đã thanh toán' WHERE order_id = 5 AND product_id = 3;
-UPDATE orderdetails SET status = 'Đã thanh toán' WHERE order_id = 5 AND product_id = 4;
-UPDATE orderdetails SET status = 'Đã thanh toán' WHERE order_id = 5 AND product_id = 1;
-SELECT status FROM orderdetails;
+SELECT DISTINCT `o`.`order_id`, `p`.`name`
+FROM `orders` `o`
+         JOIN `order_detail` `od` ON `od`.`order_id` = `o`.`order_id`
+         JOIN `products` `p` ON `p`.`product_id` = `od`.`product_id`
+         JOIN `category` `c` ON `p`.`category_id` = `c`.`category_id`
+WHERE `c`.`name` = 'Điện tử';
 
--- Tìm các đơn hàng chưa được thanh toán
-
-select o.order_id, od.status
-from orders o
-join orderdetails od on o.order_id = od.order_id
-where od.status ='chưa thanh toán' or  od.status = 'Đang xử lý';
-
--- Lấy danh sách sản phẩm không có trong bất kỳ đơn hàng nào.
-
-SELECT 
-    p.product_id, p.product_name
-FROM
-    products p
-WHERE
-    NOT EXISTS( SELECT 
-            od.product_id
-        FROM
-            orderdetails od
-        WHERE
-            od.product_id = p.product_id);
-            
--- Tìm các khách hàng chưa từng đặt hàng.   
-
-select c.customer_id, c.full_name
-from customers c
-where not exists (
-select 1
- from orders o
- where o.customer_id = c.customer_id
-);
-
-
--- Tìm sản phẩm có giá lớn hơn giá trung bình của tất cả sản phẩm và giá lớn hơn giá của sản phẩm  có product_id = 1.
--- dùng CTE - Common Table Expression
-
-with product_Price as (
-select p.product_id, p.product_name, p.price as gia_san_pham
-from products p
-),
-average_Price as (
-select avg(gia_san_pham) as avg_Price
-from product_Price
-)
-select pdp.product_id, pdp.product_name, pdp.gia_san_pham
-from product_Price pdp
-join average_Price avgp on pdp.gia_san_pham > avgp.avg_Price 
-where pdp.gia_san_pham > (select 
-p.price from products p
-where p.product_id = 1
-);
